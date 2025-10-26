@@ -1,0 +1,162 @@
+# =========================
+# 🐍 PYTHON / BACKEND
+# =========================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Unit test / coverage reports
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+htmlcov/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Logs and debug
+*.log
+*.out
+*.err
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+*.env
+secrets.json
+credentials.json
+serviceAccount.json
+
+# Django / Flask stuff
+instance/
+db.sqlite3
+*.db
+
+# VS Code settings
+.vscode/
+.idea/
+
+# mypy / pytype / pyright
+.mypy_cache/
+.pytype/
+.pyre/
+
+# =========================
+# ⚛️ REACT / FRONTEND
+# =========================
+
+# Dependency directories
+node_modules/
+bower_components/
+
+# Build outputs
+dist/
+build/
+
+# Production build output
+*.zip
+*.tar.gz
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local environment
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Coverage
+coverage/
+*.lcov
+
+# Editor / OS junk
+.DS_Store
+Thumbs.db
+
+# Local IDE settings
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# Lock files (optional)
+# Uncomment one if you want consistency
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# =========================
+# ⚙️ FIREBASE / CLOUD
+# =========================
+
+.firebase/
+.firebaserc
+firebase-debug.log
+firebase-debug.*
+storage.rules
+database.rules.json
+firestore.rules
+firestore.indexes.json
+
+# =========================
+# 🧪 OTHERS
+# =========================
+
+# Python notebooks
+*.ipynb_checkpoints
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Screenshots or exported media
+Screenshots/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.mp4
+*.avi
+
+# OS / misc
+desktop.ini
+ehthumbs.db
+Icon?
