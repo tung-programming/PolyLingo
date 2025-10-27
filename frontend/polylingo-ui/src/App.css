@@ -1,476 +1,333 @@
-/* --- Base Styles & Variables --- */
-:root {
-  --primary-color: #61dafb; /* React blue, good for accents */
-  --secondary-color: #282c34; /* Dark background, similar to VS Code */
-  --text-color: #e0e0e0; /* Light grey for readability on dark background */
-  --accent-color: #4caf50; /* Success/positive feedback green */
-  --danger-color: #f44336; /* Error/warning red */
-  --light-grey: #a0a0a0;
-  --dark-grey: #3c3c3c;
+/* ==================================================
+   POLYLINGO - COMPLETE APP.CSS (FULL REPLACEMENT)
+   ================================================== */
 
-  --font-family: 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  --border-radius: 8px;
-  --spacing-unit: 16px;
+/* ---------- Variables & Base ---------- */
+:root{
+  --primary-color: #00bfff;
+  --bg: #0f1113;
+  --panel-bg: rgba(255,255,255,0.04);
+  --glass: rgba(255,255,255,0.06);
+  --text: #e9eef2;
+  --muted: #9aa4ad;
+  --radius: 14px;
+  --shadow: 0 8px 30px rgba(0,191,255,0.06);
+  --sidebar-width: 260px;
+  --header-height: 72px;
+  --footer-height: 110px;
+  --font: "Poppins", "Segoe UI", sans-serif;
 }
 
-html, body, #root {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  min-height: 100vh;
-  font-family: var(--font-family);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: var(--secondary-color);
-  color: var(--text-color);
-  display: flex; /* Ensures #root takes full height and allows flex children */
-  flex-direction: column;
+*{box-sizing:border-box}
+html,body,#root{
+  height:100%;
+  width:100%;
+  margin:0;
+  padding:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  overflow:hidden; /* IMPORTANT: page must not scroll */
 }
 
-* {
-  box-sizing: border-box; /* Universal box-sizing for consistent layout */
+/* ---------- App shell ---------- */
+.App{
+  height:100vh;
+  display:flex;
+  flex-direction:column;
 }
 
-/* --- App Layout --- */
-.App {
-  display: flex;
-  flex-direction: column; /* Stack header, main content, footer vertically */
-  min-height: 100vh;
-  width: 100%;
-  max-width: 1200px; /* Max width for content to prevent overly wide lines */
-  margin: 0 auto; /* Center the app content */
-  padding: var(--spacing-unit);
-  padding-bottom: calc(var(--spacing-unit) * 2); /* More padding at bottom for controls */
+/* Header */
+.App-header{
+  height:var(--header-height);
+  display:flex;
+  align-items:center;
+  padding:0 28px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.App-title{
+  color:var(--primary-color);
+  font-size:1.6rem;
+  font-weight:600;
+  letter-spacing:0.6px;
 }
 
-.App-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: var(--spacing-unit);
-  border-bottom: 1px solid var(--dark-grey);
-  margin-bottom: var(--spacing-unit);
+/* Main split: left sidebar + right main area */
+.App-main-content.split{
+  display:flex;
+  flex:1;
+  gap:20px;
+  padding:22px;
+  height: calc(100vh - var(--header-height));
 }
 
-.App-logo {
-  height: 40px;
-  pointer-events: none;
-  animation: App-logo-spin infinite 20s linear; /* Spin effect for React logo */
+/* ---------- Sidebar (LEFT) ---------- */
+.sidebar{
+  width:var(--sidebar-width);
+  min-width:220px;
+  background:var(--panel-bg);
+  border-radius:var(--radius);
+  padding:18px;
+  box-shadow:var(--shadow);
+  backdrop-filter: blur(10px);
+  display:flex;
+  flex-direction:column;
+  height:100%;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+/* Memory panel title & list */
+.memory-panel { display:flex; flex-direction:column; height:100%; }
+.memory-title {
+  color:var(--primary-color);
+  font-size:1rem;
+  font-weight:600;
+  margin-bottom:12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
 }
 
-.App-title {
-  font-size: 1.8em;
-  font-weight: 600;
-  color: var(--primary-color);
-  margin-left: var(--spacing-unit); /* Space between logo and title */
+/* Scrollable memory list area inside the fixed sidebar */
+.memory-list-scroll {
+  overflow-y:auto;
+  padding-right:6px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  height: calc(100% - 42px); /* leave space for title */
 }
 
-.App-main-content {
-  flex-grow: 1; /* Allows content area to take available space */
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-unit);
-  padding: var(--spacing-unit) 0;
-  overflow-y: auto; /* Scrollable if chat gets too long */
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: var(--primary-color) var(--dark-grey); /* Firefox */
+/* memory item */
+.memory-item {
+  background: rgba(0,0,0,0.28);
+  border-radius:10px;
+  padding:10px;
+  cursor:pointer;
+  transition: transform 0.14s ease, background 0.14s;
+  border: 1px solid rgba(255,255,255,0.02);
+}
+.memory-item:hover{ transform: translateY(-4px); background: rgba(0,191,255,0.06); }
+
+.memory-meta { display:flex; justify-content:space-between; font-size:0.72rem; color:var(--muted); margin-bottom:6px; }
+.memory-preview { font-size:0.9rem; color:var(--text); line-height:1.2; }
+
+/* ensure the sidebar will not overflow the page visually */
+.memory-list-scroll::-webkit-scrollbar{ width:8px; }
+.memory-list-scroll::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.06); border-radius:8px; }
+
+/* ---------- Main Area (RIGHT) ---------- */
+.main-area{
+  flex:1;
+  background:var(--panel-bg);
+  border-radius:var(--radius);
+  padding:22px;
+  display:flex;
+  flex-direction:column;
+  box-shadow:var(--shadow);
+  height:100%;
 }
 
-/* Custom Scrollbar for Webkit browsers */
-.App-main-content::-webkit-scrollbar {
-  width: 8px;
-}
-.App-main-content::-webkit-scrollbar-track {
-  background: var(--dark-grey);
-  border-radius: var(--border-radius);
-}
-.App-main-content::-webkit-scrollbar-thumb {
-  background-color: var(--primary-color);
-  border-radius: var(--border-radius);
-  border: 2px solid var(--dark-grey);
+/* Title inside main area */
+.title{
+  text-align:center;
+  color:var(--primary-color);
+  font-size:1.5rem;
+  margin-bottom:14px;
 }
 
-
-/* --- Chat Bubbles / Messages --- */
-.chat-messages {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--spacing-unit) / 2); /* Smaller gap between messages */
-}
-
-.message {
-  display: flex;
-  align-items: flex-start;
-  padding: calc(var(--spacing-unit) / 1.5);
-  border-radius: var(--border-radius);
-  max-width: 80%; /* Messages don't span full width */
-  position: relative;
-  word-wrap: break-word; /* Ensure long words break */
-}
-
-.message.user {
-  align-self: flex-end; /* User messages on the right */
-  background-color: var(--primary-color);
-  color: var(--secondary-color);
-  margin-left: auto;
-}
-
-.message.bot {
-  align-self: flex-start; /* Bot messages on the left */
-  background-color: var(--dark-grey);
-  color: var(--text-color);
-  margin-right: auto;
-}
-
-.message-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%; /* Circular avatar */
-  margin-right: calc(var(--spacing-unit) / 2);
-  flex-shrink: 0; /* Prevent avatar from shrinking */
-  background-color: var(--light-grey); /* Placeholder background */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 1.2em;
-  color: var(--secondary-color);
-  overflow: hidden; /* For image avatars */
-}
-
-.message.user .message-avatar {
-  margin-left: calc(var(--spacing-unit) / 2);
-  margin-right: 0;
-  order: 1; /* Move avatar to the right for user messages */
-}
-
-.message-content {
-  flex-grow: 1;
-  padding: 5px 0;
-}
-
-.message-meta {
-  font-size: 0.75em;
-  color: var(--light-grey);
-  margin-top: 5px;
-  display: block;
-}
-
-.message.user .message-meta {
-  color: var(--secondary-color); /* Lighter meta for user messages */
-}
-
-/* --- Input & Controls --- */
-.App-footer {
-  padding-top: var(--spacing-unit);
-  border-top: 1px solid var(--dark-grey);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-unit);
-}
-
-.input-container {
-  display: flex;
-  gap: calc(var(--spacing-unit) / 2);
-  align-items: center;
-}
-
-.text-input {
-  flex-grow: 1;
-  padding: calc(var(--spacing-unit) / 1.5);
-  border: 1px solid var(--dark-grey);
-  border-radius: var(--border-radius);
-  background-color: var(--dark-grey);
-  color: var(--text-color);
-  font-size: 1em;
-  outline: none; /* Remove default focus outline */
-  transition: border-color 0.2s ease-in-out;
-}
-
-.text-input:focus {
-  border-color: var(--primary-color);
-}
-
-.voice-button {
-  background: #00bfff;
-  border: none;
-  color: white;
-  padding: 12px;
-  border-radius: 50%;
-  font-size: 20px;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.voice-button:hover {
-  background-color: #4ac1e2; /* Slightly darker/different shade on hover */
-}
-
-.voice-button:active {
-  transform: scale(0.95); /* Little press effect */
-}
-
-.voice-button.listening {
-  background: #ff4444;
-  animation: pulse 1s infinite;
-}
-
-.settings-panel {
-  display: flex;
-  flex-wrap: wrap; /* Allow items to wrap on smaller screens */
-  gap: var(--spacing-unit);
-  background-color: var(--dark-grey);
-  padding: var(--spacing-unit);
-  border-radius: var(--border-radius);
-  margin-top: calc(var(--spacing-unit) / 2);
-}
-
-.setting-group {
-  flex: 1; /* Allow groups to take equal space */
-  min-width: 200px; /* Minimum width before wrapping */
-}
-
-.setting-group label {
-  display: block;
-  font-size: 0.9em;
-  margin-bottom: 5px;
-  color: var(--light-grey);
-}
-
-.setting-group select,
-.setting-group input[type="range"] {
-  width: 100%;
-  padding: 8px;
-  border-radius: var(--border-radius);
-  border: 1px solid var(--dark-grey);
-  background-color: var(--secondary-color);
-  color: var(--text-color);
-  -webkit-appearance: none; /* Remove default styles for range input */
-  appearance: none;
-}
-
-.setting-group select:focus {
-  border-color: var(--primary-color);
-  outline: none;
-}
-.input-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 1rem;
-}
-
-.input-box {
-  flex: 1;
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
-  outline: none;
-  background: #2d2d2d;
-  color: white;
-}
-
-.send-btn {
-  background: #00bfff;
-  color: white;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.3s;
-}
-
-.send-btn:hover {
-  background: #0099cc;
-}
-/* Custom styling for range input */
-.setting-group input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  height: 16px;
-  width: 16px;
-  border-radius: 50%;
-  background: var(--primary-color);
-  cursor: pointer;
-  margin-top: -6px; /* Center thumb vertically */
-}
-.setting-group input[type="range"]::-moz-range-thumb {
-  height: 16px;
-  width: 16px;
-  border-radius: 50%;
-  background: var(--primary-color);
-  cursor: pointer;
-}
-.setting-group input[type="range"]::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 4px;
-  background: var(--light-grey);
-  border-radius: 2px;
-}
-.setting-group input[type="range"]::-moz-range-track {
-  width: 100%;
-  height: 4px;
-  background: var(--light-grey);
-  border-radius: 2px;
-}
-
-
-/* --- Utility Classes / Animations --- */
-.text-center { text-align: center; }
-.mt-1 { margin-top: var(--spacing-unit); }
-.mb-1 { margin-bottom: var(--spacing-unit); }
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(97, 218, 251, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(97, 218, 251, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(97, 218, 251, 0); }
-}
-
-.voice-button.listening {
-    background-color: var(--danger-color); /* Red when actively listening */
-    animation: pulse 1s infinite;
-}
-/* Adjust pulse animation for listening state to use danger color */
-@keyframes pulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); } /* Start with red shadow */
-  70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(244, 67, 54, 0); } /* Expand red shadow */
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
-}
-
-/* --- Responsive Adjustments --- */
-@media (max-width: 768px) {
-  .App {
-    padding: calc(var(--spacing-unit) / 2);
-  }
-
-  .App-header {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .App-title {
-    margin-left: 0;
-    margin-top: 0;
-    
-  }
-
-  .input-container {
-    flex-direction: column;
-  }
-
-  .text-input {
-    width: 100%; /* Full width on smaller screens */
-  }
-
-  .voice-button {
-    margin-top: calc(var(--spacing-unit) / 2);
-    width: 60px; /* Slightly larger button for touch */
-    height: 60px;
-  }
-
-  .message {
-    max-width: 95%; /* Allow messages to take more width */
-  }
-
-  .settings-panel {
-    flex-direction: column; /* Stack settings vertically */
-  }
-}
-body {
-  background-color: #1e1e1e;
-  font-family: "Poppins", sans-serif;
-  color: white;
-  margin: 0;
-  padding: 0;
-}
-
-.dashboard {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 15px;
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
-}
-
-.title {
-  font-size: 2rem;
-  text-align: center;
-  color: #00bfff;
-  margin-bottom: 1.5rem;
-}
-
-.input-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 1rem;
-}
-
-.input-box {
-  flex: 1;
-  padding: 0.7rem 1rem;
-  border-radius: 10px;
-  border: none;
-  outline: none;
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-}
-
-.send-btn {
-  padding: 0.6rem 1rem;
-  border: none;
-  border-radius: 8px;
-  background: #00bfff;
-  color: white;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.send-btn:hover {
-  background: #0099cc;
+/* persona row (small) */
+.persona-row {
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  margin-bottom:10px;
 }
 
 .chat-container {
-  background: rgba(0, 0, 0, 0.3);
+  position: absolute;
+  top: calc(var(--header-height) + 60px); /* below header + persona selector */
+  left: calc(var(--sidebar-width) + 40px);
+  right: 22px;
+  bottom: 100px; /* leave space for fixed bar */
+  background: rgba(0, 0, 0, 0.36);
   border-radius: 12px;
-  padding: 1rem;
-  height: 350px;
-  overflow-y: auto;
-  margin-bottom: 1rem;
+  padding: 18px;
+  overflow-y: auto; /* now properly scrollable */
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  box-sizing: border-box;
 }
 
+/* message bubbles */
+.chat-message { margin-bottom:12px; display:flex; }
+.bubble {
+  padding:12px 14px;
+  border-radius:10px;
+  max-width:78%;
+  color:var(--text);
+  line-height:1.35;
+}
+.user-msg { justify-content:flex-end; }
 .user-msg .bubble {
-  background: #0078ff;
-  padding: 0.8rem;
-  border-radius: 10px;
-  color: white;
-  margin-left: auto;
-  max-width: 70%;
-}
-
-.bot-msg .bubble {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.8rem;
-  border-radius: 10px;
+  background: #0088ff;
   color: #fff;
-  max-width: 70%;
+  border-bottom-right-radius:4px;
+}
+.bot-msg .bubble {
+  background: rgba(255,255,255,0.06);
+  color:var(--text);
+  border-bottom-left-radius:4px;
+}
+.meta { display:block; margin-top:8px; font-size:0.75rem; color:var(--muted); }
+
+/* chat empty filler */
+.empty-chat-filler { display:flex; align-items:center; justify-content:center; height:100%; color:var(--muted); }
+
+/* scrollbar styling */
+.chat-container::-webkit-scrollbar {
+  width: 8px;
+}
+.chat-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 191, 255, 0.12);
+  border-radius: 6px;
 }
 
+/* ---------- Fixed bottom controls inside main-area (not page fixed) ---------- */
+/* Structure: input row + small bottom row containing voice button */
+.chat-controls-fixed {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  flex-shrink:0; /* important: keeps controls visible at bottom */
+}
+
+/* input row */
+.input-container{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.input-box{
+  flex:1;
+  padding:12px 14px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.02);
+  color:var(--text);
+  font-size:1rem;
+  outline:none;
+}
+.input-box:focus{ box-shadow: 0 4px 18px rgba(0,191,255,0.06); border-color: rgba(0,191,255,0.2); }
+
+.send-btn{
+  padding:10px 14px;
+  border-radius:10px;
+  border:none;
+  background:var(--primary-color);
+  color:#fff;
+  cursor:pointer;
+  font-weight:600;
+}
+.send-btn:hover{ transform: translateY(-2px); }
+
+/* bottom row containing the voice recorder */
+.bottom-row{ display:flex; align-items:center; gap:12px; }
+
+/* voice button: tidy small pill, not giant oval */
+.voice-button{
+  padding:10px 14px;
+  border-radius:10px;
+  background:var(--primary-color);
+  color:white;
+  border:none;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:600;
+}
+.voice-button.listening{ background:#ff4d4d; }
+
+/* ---------- Small utilities ---------- */
+.loading{ color:var(--muted); font-size:0.95rem; text-align:center; padding:10px; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 980px) {
+  .App-main-content.split { flex-direction:column; padding:12px; }
+  .sidebar { width:100%; min-height:80px; height:auto; order:2; }
+  .main-area { order:1; height:auto; padding:14px; }
+  .chat-container { height: 60vh; }
+}
+/* persona dropdown row above chat */
+.dashboard-topbar {
+  position: absolute;
+  top: calc(var(--header-height) + 20px);
+  left: calc(var(--sidebar-width) + 40px);
+  right: 22px;
+  height: 52px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  background: rgba(18, 18, 18, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 10px;
+  padding: 0 14px;
+  box-shadow: 0 1px 10px rgba(0, 191, 255, 0.08);
+}
+
+/* make persona dropdown compact and visible */
+.persona-selector select {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+}
+
+/* --- Fix chat bar to bottom of viewport --- */
+.fixed-bottom-bar {
+  position: fixed;
+  bottom: 12px;
+  right: 22px;
+  left: calc(var(--sidebar-width) + 40px);
+  background: rgba(18, 18, 18, 0.85);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 -2px 18px rgba(0, 191, 255, 0.05);
+}
+
+/* Compact mic button look */
+.voice-button {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  transition: background 0.25s ease, transform 0.2s ease;
+}
+.voice-button:hover {
+  background: #0099cc;
+  transform: translateY(-1px);
+}
+.voice-button.listening {
+  background: #ff4d4d;
+}
+
+/* prevent overlap: chat bottom spacing for fixed bar */
+.chat-container {
+  padding-bottom: 140px; /* leave space so last msg not hidden */
+}
+
+/* end of file */
