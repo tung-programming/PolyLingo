@@ -1,119 +1,133 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { sendMessageToBot, synthesizeSpeech } from "../services/api";
-import ResponsePlayer from "./ResponsePlayer";
 import VoiceRecorder from "./VoiceRecorder";
 import PersonaSelector from "./PersonaSelector";
 import "../App.css";
 
-const Dashboard = () => {
+const Dashboard = ({ onSaveMemory, selectedPersona, setSelectedPersona }) => {
   const [chatHistory, setChatHistory] = useState([]);
   const [userInput, setUserInput] = useState("");
-  const [selectedPersona, setSelectedPersona] = useState("friendly");
   const [isLoading, setIsLoading] = useState(false);
+  const chatRef = useRef(null);
+
   useEffect(() => {
-  // 🔊 Preload speech synthesis voices early to avoid first-call lag
-  speechSynthesis.getVoices();
+    // Always scroll chat to bottom on new message
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
+  }, [chatHistory]);
 
-  // 🧠 Some browsers (like Chrome) need this trick to ensure they actually load
-  window.speechSynthesis.onvoiceschanged = () => {
-    console.log("✅ Voices loaded:", speechSynthesis.getVoices().length);
-  };
-}, []);
+  useEffect(() => {
+    speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => {};
+  }, []);
 
-  // 🧠 Core message handler (connects to backend)
   const handleUserMessage = async (message) => {
-    if (!message || !message.toString().trim()) return;
+    if (!message || !message.trim()) return;
     setIsLoading(true);
+    setChatHistory((prev) => [...prev, { sender: "user", text: message }]);
+    setUserInput("");
 
     try {
       const response = await sendMessageToBot(message, "demo_user", selectedPersona);
+      const botItem = {
+        sender: "bot",
+        text: response.reply,
+        emotion: response.emotion?.label || "neutral",
+        language: response.language || "en",
+        persona: response.persona || selectedPersona,
+      };
 
+      setChatHistory((prev) => {
+        const updated = [...prev, botItem];
+        const memory = {
+          id: Date.now(),
+          preview: (response.reply || "").slice(0, 80),
+          emotion: botItem.emotion,
+          language: botItem.language,
+          time: new Date().toLocaleTimeString(),
+          chat: updated,
+        };
+        onSaveMemory?.(memory);
+        return updated;
+      });
+
+      synthesizeSpeech(response.reply, response.language || "en");
+    } catch (err) {
+      console.error("sendMessageToBot error", err);
       setChatHistory((prev) => [
         ...prev,
-        { sender: "user", text: message },
-        {
-          sender: "bot",
-          text: response.reply,
-          emotion: response.emotion?.label,
-          language: response.language,
-          persona: response.persona,
-          mood: response.mood,
-        },
+        { sender: "bot", text: "Sorry — something went wrong." },
       ]);
-
-      // 🎙️ Automatically play the bot’s reply using browser TTS
-      if (response.reply) {
-        // response.language may be like "en" or "es" - pass it if available
-        try {
-          synthesizeSpeech(response.reply, response.language || "en");
-          console.log(response.language);
-        } catch (err) {
-          console.error("TTS error:", err);
-        }
-      }
-    } catch (error) {
-      console.error("❌ Chat Error:", error);
     } finally {
       setIsLoading(false);
-      setUserInput("");
     }
   };
 
-  // 🗣️ Triggered when user sends a text message
-  const handleSendClick = () => handleUserMessage(userInput);
-
-  // 🎤 Triggered when speech-to-text returns transcribed message
-  const handleVoiceInput = (transcribedText) => {
-    if (transcribedText) handleUserMessage(transcribedText);
+  const handleSend = () => handleUserMessage(userInput);
+  const handleVoiceInput = (text) => {
+    if (text) handleUserMessage(text);
   };
 
   return (
     <div className="dashboard">
-      <h1 className="title">PolyLingo – Multilingual Voice Chatbot 🌍</h1>
+      {/* Persona selector row above chat */}
+      <div className="dashboard-topbar">
+        <PersonaSelector
+          selectedPersona={selectedPersona}
+          onChange={setSelectedPersona}
+        />
+      </div>
 
-      <PersonaSelector
-        selectedPersona={selectedPersona}
-        onChange={(persona) => setSelectedPersona(persona)}
-      />
+      {/* Scrollable chat area */}
+      <div ref={chatRef} className="chat-container">
+        {chatHistory.length === 0 && (
+          <div className="empty-chat-filler">
+            <p style={{ color: "var(--muted)" }}>
+              Say hi — type or use the mic to start talking.
+            </p>
+          </div>
+        )}
 
-      <div className="chat-container">
-        {chatHistory.map((msg, index) => (
+        {chatHistory.map((m, i) => (
           <div
-            key={index}
-            className={`chat-message ${msg.sender === "user" ? "user-msg" : "bot-msg"}`}
+            key={i}
+            className={`chat-message ${m.sender === "user" ? "user-msg" : "bot-msg"}`}
           >
             <div className="bubble">
-              <p>{msg.text}</p>
-              {msg.sender === "bot" && (
+              <p>{m.text}</p>
+              {m.sender === "bot" && (
                 <small className="meta">
-                  {msg.language?.toUpperCase()} · {msg.emotion?.toUpperCase()} · {msg.persona?.toUpperCase()}
+                  {m.language?.toUpperCase()} · {m.emotion?.toUpperCase()} ·{" "}
+                  {m.persona?.toUpperCase()}
                 </small>
               )}
             </div>
           </div>
         ))}
+
         {isLoading && <div className="loading">Thinking...</div>}
       </div>
 
-      <div className="input-container">
-        <input
-          type="text"
-          placeholder="Type your message..."
-          value={userInput}
-          onChange={(e) => setUserInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSendClick()}
-          className="input-box"
-        />
-        <button onClick={handleSendClick} className="send-btn">
-          Send
-        </button>
+      {/* Fixed bottom bar */}
+      <div className="fixed-bottom-bar">
+        <div className="input-container">
+          <input
+            type="text"
+            className="input-box"
+            placeholder="Type your message..."
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          />
+          <button onClick={handleSend} className="send-btn">
+            Send
+          </button>
+          <VoiceRecorder onTranscription={handleVoiceInput} />
+        </div>
       </div>
-
-      {/* VoiceRecorder uses onTranscription prop name */}
-      <VoiceRecorder onTranscription={handleVoiceInput} />
     </div>
   );
 };
-
 
 export default Dashboard;
