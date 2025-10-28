@@ -278,12 +278,42 @@ html,body,#root{
 
 /* make persona dropdown compact and visible */
 .persona-selector select {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.6);
   color: var(--text);
-  border: none;
+  border: 1px solid rgba(0, 191, 255, 0.3);
   border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 0.9rem;
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 8px rgba(0, 191, 255, 0.15);
+}
+
+.persona-selector select:hover {
+  border-color: rgba(0, 191, 255, 0.6);
+  box-shadow: 0 0 12px rgba(0, 191, 255, 0.25);
+}
+
+.persona-selector select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 10px rgba(0, 191, 255, 0.4);
+}
+
+/* dropdown items (for most browsers) */
+.persona-selector option {
+  background: #1a1a1a;
+  color: #eaeaea;
+  font-weight: 500;
+  padding: 10px;
+}
+
+/* optional smoother highlight */
+.persona-selector select::-ms-expand {
+  display: none; /* hide default arrow on Windows */
 }
 
 /* --- Fix chat bar to bottom of viewport --- */
@@ -328,6 +358,120 @@ html,body,#root{
 /* prevent overlap: chat bottom spacing for fixed bar */
 .chat-container {
   padding-bottom: 140px; /* leave space so last msg not hidden */
+}
+
+/* ================================
+   🧹 Custom Confirm Modal Styling
+   ================================ */
+
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  animation: fadeIn 0.25s ease;
+}
+
+.confirm-box {
+  background: rgba(30, 32, 36, 0.95);
+  color: var(--text);
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 191, 255, 0.2);
+  text-align: center;
+  width: 340px;
+  animation: scaleIn 0.25s ease;
+}
+
+.confirm-message {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  color: #e4e4e4;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.8rem;
+}
+
+.confirm-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-size: 0.9rem;
+}
+
+.confirm-btn.confirm {
+  background: var(--primary-color);
+  color: #fff;
+}
+.confirm-btn.confirm:hover {
+  background: #0099cc;
+  transform: translateY(-2px);
+}
+
+.confirm-btn.cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ccc;
+}
+.confirm-btn.cancel:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Simple animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* ======================
+   ✅ Toast Notification
+   ====================== */
+.toast-container {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 9999;
+  animation: slideIn 0.4s ease;
+}
+
+.toast-box {
+  background: rgba(0, 191, 255, 0.15);
+  color: var(--text);
+  padding: 0.8rem 1.4rem;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0, 191, 255, 0.2);
+  backdrop-filter: blur(8px);
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  border: 1px solid rgba(0, 191, 255, 0.25);
+  animation: fadeOut 0.4s ease 2.6s forwards;
+}
+
+/* animations */
+@keyframes slideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes fadeOut {
+  to { opacity: 0; transform: translateY(20px); }
 }
 
 /* end of file */
