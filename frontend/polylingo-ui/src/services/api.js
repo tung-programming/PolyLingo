@@ -4,16 +4,27 @@ import axios from "axios";
 const API_BASE = "http://127.0.0.1:8000/api/nlp";
 
 /* ============================================================================
-   🧠 1. Send message to backend
+   🧠 1. Send message to backend (now supports context)
    ========================================================================== */
-export async function sendMessageToBot(user_input, user_id = "guest", persona = "friendly") {
+export async function sendMessageToBot(
+  user_input,
+  user_id = "guest",
+  persona = "friendly",
+  context = null // 🧠 optional memory context
+) {
   try {
-    const response = await axios.post(`${API_BASE}/response`, {
+    const payload = {
       user_input,
       user_id,
       persona,
-    });
+    };
 
+    // 🧠 Attach memory context if provided
+    if (context && (context.shortterm || context.facts)) {
+      payload.context = context;
+    }
+
+    const response = await axios.post(`${API_BASE}/response`, payload);
     return response.data;
   } catch (error) {
     console.error("❌ Error sending message:", error);
@@ -23,8 +34,6 @@ export async function sendMessageToBot(user_input, user_id = "guest", persona = 
 
 /* ============================================================================
    🔊 2. Convert text to speech (TTS)
-   Uses browser’s SpeechSynthesis API for multilingual support.
-   Returns the utterance object so callers can observe events.
    ========================================================================== */
 export async function synthesizeSpeech(text, language = "en") {
   if (!text) return;
@@ -70,10 +79,8 @@ export async function synthesizeSpeech(text, language = "en") {
         (v.lang.toLowerCase().startsWith(targetLang.toLowerCase()) ||
           v.lang.toLowerCase().startsWith(language.toLowerCase()))
     ) ||
-    // fallback: any voice matching target language
     voices.find((v) => v.lang.toLowerCase().startsWith(targetLang.toLowerCase())) ||
     voices.find((v) => v.lang.toLowerCase().startsWith(language.toLowerCase())) ||
-    // fallback: Google US English
     voices.find((v) => v.name.includes("Google US English")) ||
     voices[0];
 
@@ -93,17 +100,14 @@ export async function synthesizeSpeech(text, language = "en") {
   speechSynthesis.speak(utterance);
 }
 
-
-
 /* ============================================================================
    🎤 3. Transcribe audio (Speech-to-Text)
-   Uses browser’s built-in Web Speech API for instant transcription.
-   Returns a promise that resolves with the transcript string.
    ========================================================================== */
 export async function transcribeAudio() {
   return new Promise((resolve, reject) => {
     try {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
 
       if (!SpeechRecognition) {
         reject(new Error("SpeechRecognition not supported in this browser."));
@@ -111,7 +115,7 @@ export async function transcribeAudio() {
       }
 
       const recognition = new SpeechRecognition();
-      recognition.lang = "en-US"; // can be dynamic
+      recognition.lang = "en-US";
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 

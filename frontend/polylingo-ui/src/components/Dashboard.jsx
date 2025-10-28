@@ -2,34 +2,65 @@ import React, { useEffect, useRef, useState } from "react";
 import { sendMessageToBot, synthesizeSpeech } from "../services/api";
 import VoiceRecorder from "./VoiceRecorder";
 import PersonaSelector from "./PersonaSelector";
+import memory from "../services/memory";
 import "../App.css";
 
-const Dashboard = ({ onSaveMemory, selectedPersona, setSelectedPersona }) => {
+const Dashboard = ({
+  onSaveMemory,
+  selectedPersona,
+  setSelectedPersona,
+  selectedMemory,
+  onClearMemory, // ✅ gets from App.jsx
+}) => {
   const [chatHistory, setChatHistory] = useState([]);
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const chatRef = useRef(null);
 
+  // Scroll to bottom on new messages
   useEffect(() => {
-    // Always scroll chat to bottom on new message
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
   }, [chatHistory]);
 
+  // Preload TTS voices
   useEffect(() => {
     speechSynthesis.getVoices();
     window.speechSynthesis.onvoiceschanged = () => {};
   }, []);
 
+  // 🧠 Load selected memory instantly when chosen from sidebar
+  useEffect(() => {
+    if (selectedMemory && selectedMemory.chat) {
+      setChatHistory(selectedMemory.chat);
+    }
+  }, [selectedMemory]);
+
+  // 🔁 Core message handler
   const handleUserMessage = async (message) => {
     if (!message || !message.trim()) return;
+
     setIsLoading(true);
     setChatHistory((prev) => [...prev, { sender: "user", text: message }]);
     setUserInput("");
 
     try {
-      const response = await sendMessageToBot(message, "demo_user", selectedPersona);
+      // 🧠 Store user turn
+      memory.addTurn({ role: "user", text: message });
+
+      const context = {
+        shortterm: memory.getShortTerm(),
+        facts: memory.getFacts(),
+      };
+
+      const response = await sendMessageToBot(
+        message,
+        "demo_user",
+        selectedPersona,
+        context
+      );
+
       const botItem = {
         sender: "bot",
         text: response.reply,
@@ -38,17 +69,26 @@ const Dashboard = ({ onSaveMemory, selectedPersona, setSelectedPersona }) => {
         persona: response.persona || selectedPersona,
       };
 
+      // 🧠 Store bot turn
+      memory.addTurn({
+        role: "bot",
+        text: botItem.text,
+        lang: botItem.language,
+        emotion: botItem.emotion,
+      });
+
+      // Update chat UI
       setChatHistory((prev) => {
         const updated = [...prev, botItem];
-        const memory = {
-          id: Date.now(),
-          preview: (response.reply || "").slice(0, 80),
+        const memorySnapshot = {
+          id: Date.now() + Math.random(), // ✅ unique key
+          preview: (botItem.text || "").slice(0, 80),
           emotion: botItem.emotion,
           language: botItem.language,
           time: new Date().toLocaleTimeString(),
           chat: updated,
         };
-        onSaveMemory?.(memory);
+        onSaveMemory?.(memorySnapshot);
         return updated;
       });
 
@@ -64,24 +104,48 @@ const Dashboard = ({ onSaveMemory, selectedPersona, setSelectedPersona }) => {
     }
   };
 
+  // UI handlers
   const handleSend = () => handleUserMessage(userInput);
   const handleVoiceInput = (text) => {
     if (text) handleUserMessage(text);
   };
 
+  // ✅ Fixed: this now calls real memory clearing from App
+  const handleClearClick = () => {
+    if (window.confirm("Clear all saved memories?")) {
+      onClearMemory(); // uses prop from App.jsx
+      setChatHistory([]); // clear visible chat too
+    }
+  };
+
   return (
     <div className="dashboard">
-      {/* Persona selector row above chat */}
+      {/* Persona selector + clear button */}
       <div className="dashboard-topbar">
         <PersonaSelector
           selectedPersona={selectedPersona}
           onChange={setSelectedPersona}
         />
+        <button
+          onClick={handleClearClick}
+          style={{
+            marginLeft: "auto",
+            background: "rgba(255,255,255,0.08)",
+            border: "none",
+            borderRadius: "8px",
+            padding: "6px 12px",
+            color: "var(--text)",
+            cursor: "pointer",
+            fontSize: "0.8rem",
+          }}
+        >
+          🧹 Clear Memory
+        </button>
       </div>
 
-      {/* Scrollable chat area */}
+      {/* Chat Area */}
       <div ref={chatRef} className="chat-container">
-        {chatHistory.length === 0 && (
+        {chatHistory.length === 0 && !isLoading && (
           <div className="empty-chat-filler">
             <p style={{ color: "var(--muted)" }}>
               Say hi — type or use the mic to start talking.
@@ -91,8 +155,10 @@ const Dashboard = ({ onSaveMemory, selectedPersona, setSelectedPersona }) => {
 
         {chatHistory.map((m, i) => (
           <div
-            key={i}
-            className={`chat-message ${m.sender === "user" ? "user-msg" : "bot-msg"}`}
+            key={`${i}-${m.sender}-${m.text?.slice(0, 10)}`} // ✅ unique key
+            className={`chat-message ${
+              m.sender === "user" ? "user-msg" : "bot-msg"
+            }`}
           >
             <div className="bubble">
               <p>{m.text}</p>
@@ -109,7 +175,7 @@ const Dashboard = ({ onSaveMemory, selectedPersona, setSelectedPersona }) => {
         {isLoading && <div className="loading">Thinking...</div>}
       </div>
 
-      {/* Fixed bottom bar */}
+      {/* Fixed bottom input */}
       <div className="fixed-bottom-bar">
         <div className="input-container">
           <input
