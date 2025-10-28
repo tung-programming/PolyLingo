@@ -19,7 +19,6 @@ const PersonaSelector = ({ selectedPersona, onChange }) => {
   return (
     <div className="persona-selector">
       <select
-        className="persona-dropdown"
         value={selectedPersona}
         onChange={(e) => onChange(e.target.value)}
       >

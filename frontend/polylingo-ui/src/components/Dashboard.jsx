@@ -4,6 +4,8 @@ import VoiceRecorder from "./VoiceRecorder";
 import PersonaSelector from "./PersonaSelector";
 import memory from "../services/memory";
 import "../App.css";
+import ConfirmModal from "./ConfirmModal";
+import Toast from "./Toast";
 
 const Dashboard = ({
   onSaveMemory,
@@ -110,12 +112,20 @@ const Dashboard = ({
     if (text) handleUserMessage(text);
   };
 
-  // ✅ Fixed: this now calls real memory clearing from App
-  const handleClearClick = () => {
-    if (window.confirm("Clear all saved memories?")) {
-      onClearMemory(); // uses prop from App.jsx
-      setChatHistory([]); // clear visible chat too
-    }
+  const [showConfirm, setShowConfirm] = useState(false);
+    const handleClearClick = () => {
+    setShowConfirm(true);
+  };
+  const [showToast, setShowToast] = useState(false);
+  const confirmClear = () => {
+    onClearMemory();
+    setChatHistory([]);
+    setShowConfirm(false);
+    setShowToast(true); 
+  };
+
+  const cancelClear = () => {
+    setShowConfirm(false);
   };
 
   return (
@@ -192,6 +202,20 @@ const Dashboard = ({
           <VoiceRecorder onTranscription={handleVoiceInput} />
         </div>
       </div>
+      {/* 🧹 Custom confirmation modal */}
+      <ConfirmModal
+        show={showConfirm}
+        message="Do you really want to clear all saved memories?"
+        onConfirm={confirmClear}
+        onCancel={cancelClear}
+      />
+      {/* ✅ Toast */}
+      <Toast
+        show={showToast}
+        message="✅ Memories cleared successfully!"
+        onClose={() => setShowToast(false)}
+      />
+
     </div>
   );
 };
