@@ -474,4 +474,43 @@ html,body,#root{
   to { opacity: 0; transform: translateY(20px); }
 }
 
+/* ================================
+   🎭 Mood Visualizer Styling
+   ================================ */
+
+.mood-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  animation: moodFadeIn 0.3s ease, moodPulse 2s infinite ease-in-out;
+  box-shadow: 0 0 12px rgba(0, 191, 255, 0.3);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.mood-badge.hide {
+  opacity: 0;
+  transform: translateY(-8px);
+  animation: none;
+}
+
+/* optional glowing animation */
+@keyframes moodPulse {
+  0% { box-shadow: 0 0 8px rgba(0, 191, 255, 0.2); }
+  50% { box-shadow: 0 0 14px rgba(0, 191, 255, 0.45); }
+  100% { box-shadow: 0 0 8px rgba(0, 191, 255, 0.2); }
+}
+
+/* fade in */
+@keyframes moodFadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
 /* end of file */
