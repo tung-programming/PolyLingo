@@ -3,7 +3,7 @@ import "./App.css";
 
 import Dashboard from "./components/Dashboard";
 import MemoryPanel from "./components/MemoryPanel";
-import memory from "./services/memory"; // 🧠 import memory service
+import memory from "./services/memory";
 
 function App() {
   const [selectedPersona, setSelectedPersona] = useState("friendly");
@@ -12,7 +12,7 @@ function App() {
   );
   const [selectedMemory, setSelectedMemory] = useState(null);
 
-  // 🧠 Save memory snapshots, avoid duplicates
+  // Save memory snapshots
   const handleSaveMemory = (memoryItem) => {
     if (!memoryItem || !memoryItem.preview) return;
 
@@ -20,7 +20,6 @@ function App() {
       localStorage.getItem("polylingo_memories") || "[]"
     );
 
-    // Check if the preview already exists (avoid duplicates)
     const isDuplicate = existing.some(
       (m) => m.preview === memoryItem.preview && m.time === memoryItem.time
     );
@@ -31,13 +30,13 @@ function App() {
     setMemories(updated);
   };
 
-  // 🧠 When a memory is selected from sidebar, load it in Dashboard instantly
+  // Load selected memory
   const handleSelectMemory = (memoryItem) => {
     if (!memoryItem) return;
     setSelectedMemory(memoryItem);
   };
 
-  // 🧹 Clear all stored memories (UI + storage + short-term)
+  // Clear all memories (sidebar only)
   const handleClearMemory = () => {
     memory.clear();
     localStorage.removeItem("polylingo_memories");
@@ -52,7 +51,7 @@ function App() {
       </header>
 
       <main className="App-main-content split">
-        {/* Left: memory panel */}
+        {/* Sidebar */}
         <aside className="sidebar">
           <MemoryPanel
             memories={memories}
@@ -61,14 +60,13 @@ function App() {
           />
         </aside>
 
-        {/* Right: dashboard */}
+        {/* Main chat dashboard */}
         <section className="main-area">
           <Dashboard
             onSaveMemory={handleSaveMemory}
             selectedPersona={selectedPersona}
             setSelectedPersona={setSelectedPersona}
             selectedMemory={selectedMemory}
-            onClearMemory={handleClearMemory}
           />
         </section>
       </main>
