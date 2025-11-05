@@ -1,9 +1,12 @@
 // src/services/memory.js
-// Simple short-term memory service for PolyLingo (frontend).
-// - ring buffer of recent turns (polylingo_shortterm)
-// - key facts store (polylingo_facts)
-// - small heuristic extractor for name, languages, mood keywords
-// No external deps. Use as: import memory from '../services/memory';
+// Extended memory service for PolyLingo (frontend).
+// - short-term ring buffer
+// - persisted facts (long-term, saved to localStorage)
+// - heuristics-based fact extraction
+// - public helpers: addFact, removeFact, extractFacts, findRelevantFacts
+// - safe JSON read/write
+//
+// Based on the previous file (kept original heuristics + behaviour) and extended.
 
 const SHORT_KEY = "polylingo_shortterm";
 const FACTS_KEY = "polylingo_facts";
@@ -15,14 +18,13 @@ function nowIso() {
 }
 
 const heuristics = {
-  // Rough name pattern: "My name is X", "I'm X", "I am X"
+  // Rough name patterns
   namePatterns: [
     /\bmy name is ([A-Z][a-z]+(?: [A-Z][a-z]+)?)\b/i,
     /\bi am ([A-Z][a-z]+(?: [A-Z][a-z]+)?)\b/i,
     /\bi'm ([A-Z][a-z]+(?: [A-Z][a-z]+)?)\b/i,
     /\bthis is ([A-Z][a-z]+(?: [A-Z][a-z]+)?)\b/i,
   ],
-  // language hints
   languageKeywords: {
     ja: ["nihongo", "japanese", "こんにちは", "こんばんは", "おはよう"],
     en: ["english", "en", "hi", "hello", "hey"],
@@ -32,7 +34,6 @@ const heuristics = {
     da: ["danish", "dansk"],
     nl: ["dutch", "nederlands"],
   },
-  // mood keywords mapping to simple moods
   moodKeywords: {
     joy: ["happy", "glad", "good", "great", "joy", "excited", "😊", "😀", "😄"],
     sadness: ["sad", "down", "depressed", "unhappy", "😔", "😢"],
@@ -63,18 +64,15 @@ function writeJson(key, value) {
 const memory = {
   _maxTurns: defaultMaxTurns,
 
-  // initialization: not strictly required since module is lazy
   init({ maxTurns } = {}) {
     if (typeof maxTurns === "number" && maxTurns > 0) this._maxTurns = maxTurns;
-    // ensure keys exist
     const st = readJson(SHORT_KEY, []);
     const facts = readJson(FACTS_KEY, {});
-    // re-write to sanitize
     writeJson(SHORT_KEY, st.slice(0, this._maxTurns));
     writeJson(FACTS_KEY, facts);
   },
 
-  // Add a turn object: { role: 'user'|'bot', text: string, lang?, emotion? }
+  // Add a turn object: { role: 'user'|'bot', text, lang?, emotion? }
   addTurn(turn) {
     if (!turn || !turn.role || !turn.text) return;
     const stored = readJson(SHORT_KEY, []);
@@ -86,50 +84,87 @@ const memory = {
       emotion: turn.emotion || null,
       time: nowIso(),
     };
-    // push and keep last N
     stored.push(item);
     const trimmed = stored.slice(-this._maxTurns);
     writeJson(SHORT_KEY, trimmed);
 
-    // If this was a user turn, run quick fact extraction
+    // If user turn, try to extract facts automatically
     if (turn.role === "user") {
-      const facts = this.getFacts();
       const extracted = this._extractFactsFromText(turn.text);
-      // merge extracted facts (do not overwrite non-empty known facts with empty ones)
+      // merge extracted facts
       for (const k of Object.keys(extracted)) {
         const v = extracted[k];
         if (v == null) continue;
-        // simple merge rules: if facts[k] empty -> set, else for arrays merge
-        if (!facts[k]) {
-          facts[k] = v;
-        } else if (Array.isArray(facts[k]) && Array.isArray(v)) {
-          // merge unique
-          const set = new Set([...facts[k], ...v]);
-          facts[k] = Array.from(set);
-        } else {
-          // keep existing (do not clobber) OR update if new value is more specific
-          // here we keep existing unless empty
-        }
+        // Use addFact public helper to merge well
+        this.addFact(k, v);
       }
-      writeJson(FACTS_KEY, facts);
     }
   },
 
-  // Return short-term array (oldest -> newest)
   getShortTerm() {
     return readJson(SHORT_KEY, []);
   },
 
-  // Facts object
   getFacts() {
     return readJson(FACTS_KEY, {});
   },
 
-  // manual fact update
+  // Add or merge a fact safely.
+  // - If key does not exist -> set
+  // - If exists and both arrays -> merge unique
+  // - If exists and scalar -> keep existing (do not overwrite) unless `force=true`
+  addFact(key, value, { force = false } = {}) {
+    if (!key) return;
+    const facts = this.getFacts();
+    const existing = facts[key];
+
+    // if forcing, just set
+    if (force) {
+      facts[key] = value;
+      writeJson(FACTS_KEY, facts);
+      return;
+    }
+
+    // merge arrays
+    if (Array.isArray(existing) && Array.isArray(value)) {
+      const set = new Set([...existing, ...value]);
+      facts[key] = Array.from(set);
+    } else if (!existing) {
+      // store new fact
+      facts[key] = value;
+    } else {
+      // keep existing (do not clobber) - but if existing is array and new scalar add if not exists
+      if (Array.isArray(existing) && !Array.isArray(value)) {
+        if (!existing.includes(value)) existing.push(value);
+        facts[key] = existing;
+      } else {
+        // existing scalar present -> do not overwrite
+        // option: if value is more specific (longer string) we could replace, but keep safe default
+      }
+    }
+    writeJson(FACTS_KEY, facts);
+  },
+
+  // Remove a single fact key
+  removeFact(key) {
+    if (!key) return;
+    const facts = this.getFacts();
+    if (facts[key]) {
+      delete facts[key];
+      writeJson(FACTS_KEY, facts);
+    }
+  },
+
+  // manual fact update (overwrite)
   updateFact(key, value) {
     const facts = this.getFacts();
     facts[key] = value;
     writeJson(FACTS_KEY, facts);
+  },
+
+  // Clear only facts (keep shortterm)
+  clearFacts() {
+    writeJson(FACTS_KEY, {});
   },
 
   // clear all memory (shortterm + facts)
@@ -138,7 +173,6 @@ const memory = {
     writeJson(FACTS_KEY, {});
   },
 
-  // export snapshot object for debugging
   export() {
     return {
       shortterm: this.getShortTerm(),
@@ -146,7 +180,6 @@ const memory = {
     };
   },
 
-  // change size of ring buffer
   setMaxTurns(n) {
     if (typeof n !== "number" || n <= 0) return;
     this._maxTurns = n;
@@ -154,7 +187,34 @@ const memory = {
     writeJson(SHORT_KEY, stored);
   },
 
-  // Simple heuristics extractor
+  // Public wrapper to use extraction heuristics from any caller
+  extractFacts(text = "") {
+    return this._extractFactsFromText(text);
+  },
+
+  // Very small helper to retrieve facts relevant to a query string
+  // naive substring match across fact values, returns an object of matches
+  findRelevantFacts(query = "") {
+    const out = {};
+    if (!query) return out;
+    const q = query.toLowerCase();
+    const facts = this.getFacts();
+    for (const [k, v] of Object.entries(facts)) {
+      try {
+        if (typeof v === "string" && v.toLowerCase().includes(q)) out[k] = v;
+        else if (Array.isArray(v)) {
+          const matches = v.filter((it) => String(it).toLowerCase().includes(q));
+          if (matches.length) out[k] = matches;
+        } else if (typeof v === "object" && v !== null) {
+          const s = JSON.stringify(v).toLowerCase();
+          if (s.includes(q)) out[k] = v;
+        }
+      } catch {}
+    }
+    return out;
+  },
+
+  // Private heuristics-based extractor (kept as-is, extended only slightly)
   _extractFactsFromText(text = "") {
     const out = {
       user_name: null,
@@ -170,8 +230,10 @@ const memory = {
     for (const r of heuristics.namePatterns) {
       const m = normalized.match(r);
       if (m && m[1]) {
-        // Title-case the name
-        const name = m[1].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        const name = m[1]
+          .split(" ")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
         out.user_name = name;
         break;
       }
@@ -200,32 +262,32 @@ const memory = {
       if (out.mood) break;
     }
 
-    // 4) "likes" extraction: very naive "I like X" or "I love X"
+    // 4) "likes" extraction: naive "I like X" or "I love X"
     const likeMatch = normalized.match(/\b(I like|I love|I'm into|I enjoy) ([a-zA-Z0-9 ,&]+?)(?:[.!?]|$)/i);
     if (likeMatch && likeMatch[2]) {
-      // split by comma or 'and'
-      const raw = likeMatch[2].split(/,| and | & /i).map(s => s.trim()).filter(Boolean);
+      const raw = likeMatch[2].split(/,| and | & /i).map((s) => s.trim()).filter(Boolean);
       if (raw.length) out.likes = raw;
     }
 
-    // 5) last_topic: capture short subject like "about sleep" or first 6 words as preview
+    // 5) last_topic: capture "about X" or first few words
     const topicMatch = normalized.match(/\b(about|regarding|on|about the topic of) ([a-zA-Z0-9 ,&]+?)(?:[.!?]|$)/i);
     if (topicMatch && topicMatch[2]) {
       out.last_topic = topicMatch[2].trim().split(" ").slice(0, 6).join(" ");
     } else {
-      // fallback short preview
       out.last_topic = normalized.split(" ").slice(0, 8).join(" ");
     }
 
     // remove nulls
-    Object.keys(out).forEach(k => {
+    Object.keys(out).forEach((k) => {
       if (out[k] == null) delete out[k];
+      // normalize arrays to unique arrays
+      if (Array.isArray(out[k])) out[k] = Array.from(new Set(out[k]));
     });
 
     return out;
   },
 };
 
-memory.init(); // ensure default keys exist
- 
+memory.init();
+
 export default memory;

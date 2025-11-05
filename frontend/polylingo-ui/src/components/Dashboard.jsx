@@ -4,15 +4,16 @@ import VoiceRecorder from "./VoiceRecorder";
 import PersonaSelector from "./PersonaSelector";
 import memory from "../services/memory";
 import "../App.css";
-import ConfirmModal from "./ConfirmModal";
 import Toast from "./Toast";
 
-const Dashboard = ({
-  onSaveMemory,
-  selectedPersona,
-  setSelectedPersona,
-  selectedMemory,
-}) => {
+/**
+ * Dashboard.jsx
+ * - Keeps existing chat + persona + language features
+ * - Adds Memory-based recall: extracts facts from user messages and stores them
+ * - Sends shortterm + facts to backend (unchanged behavior)
+ */
+
+const Dashboard = ({ onSaveMemory, selectedPersona, setSelectedPersona, selectedMemory }) => {
   const [chatHistory, setChatHistory] = useState([]);
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -21,29 +22,21 @@ const Dashboard = ({
   const [currentEmotion, setCurrentEmotion] = useState(null);
   const emotionTimerRef = useRef(null);
 
-  const [showConfirm, setShowConfirm] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
-  // Scroll to bottom
+  // scroll to bottom on change
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [chatHistory]);
 
-  // Preload voices
-  useEffect(() => {
-    speechSynthesis.getVoices();
-    window.speechSynthesis.onvoiceschanged = () => {};
-  }, []);
-
-  // Load selected memory instantly when chosen
   useEffect(() => {
     if (selectedMemory && selectedMemory.chat) {
       setChatHistory(selectedMemory.chat);
     }
   }, [selectedMemory]);
 
-  // Map emotion → emoji, color, label
+  // emotion meta mapping (unchanged)
   const getEmotionMeta = (emotion) => {
     if (!emotion) return { label: "Neutral", emoji: "😐", color: "#9aa4ad" };
     const e = emotion.toLowerCase();
@@ -66,14 +59,12 @@ const Dashboard = ({
     }
   };
 
-  // Adaptive persona
+  // adapt persona (unchanged)
   const adaptPersona = (emotion) => {
     const e = (emotion || "").toLowerCase();
     let newPersona = selectedPersona;
-
     if (e.includes("sad")) newPersona = "caring";
-    else if (e.includes("joy") || e.includes("happy") || e.includes("excited"))
-      newPersona = "witty";
+    else if (e.includes("joy") || e.includes("happy") || e.includes("excited")) newPersona = "witty";
     else if (e.includes("anger")) newPersona = "neutral";
     else if (e.includes("fear") || e.includes("anxious")) newPersona = "caring";
     else newPersona = "friendly";
@@ -87,14 +78,11 @@ const Dashboard = ({
         professional: "Professional 💼",
         neutral: "Neutral 🧘",
       };
-      setToastMessage(
-        `Persona adapted to ${personaLabels[newPersona]} (${e || "neutral"} mood detected)`
-      );
+      setToastMessage(`Persona adapted to ${personaLabels[newPersona]} (${e || "neutral"} mood detected)`);
       setShowToast(true);
     }
   };
 
-  // Show emotion badge
   const showEmotion = (emotionLabel) => {
     const meta = getEmotionMeta(emotionLabel);
     setCurrentEmotion(meta);
@@ -105,7 +93,29 @@ const Dashboard = ({
     }, 5000);
   };
 
-  // Handle sending messages
+  // Small language detection for typed input (keeps your current behavior if used elsewhere)
+  const detectLanguage = (text) => {
+    if (!text) return "en";
+    const patterns = {
+      fr: /[éèêàçùâîôëœ]|bonjour|merci|salut/i,
+      es: /[ñáéíóú]|hola|gracias/i,
+      hi: /[अ-ह]+|नमस्ते|धन्यवाद/i,
+      ja: /[ぁ-んァ-ン一-龯]/,
+      ko: /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/,
+      zh: /[\u4e00-\u9fa5]/,
+      ar: /[\u0600-\u06FF]/,
+      ru: /[А-яЁё]/,
+      de: /[äöüß]|hallo|danke/i,
+      it: /[àèéìíòóù]|ciao|grazie/i,
+      pt: /[ãõáéíóú]|olá|obrigado/i,
+    };
+    for (const [lang, regex] of Object.entries(patterns)) {
+      if (regex.test(text)) return lang;
+    }
+    return "en";
+  };
+
+  // The main sending flow - adds memory facts, sends context to backend, stores bot reply.
   const handleUserMessage = async (message) => {
     if (!message || !message.trim()) return;
     setIsLoading(true);
@@ -113,18 +123,45 @@ const Dashboard = ({
     setUserInput("");
 
     try {
+      // 1) add user turn to short-term memory (this will also auto-extract simple facts)
       memory.addTurn({ role: "user", text: message });
-      const context = { shortterm: memory.getShortTerm(), facts: memory.getFacts() };
-      const response = await sendMessageToBot(message, "demo_user", selectedPersona, context);
 
+      // 1b) explicitly extract facts from this user message and add to memory (so facts persist)
+      const extractedFromUser = memory.extractFacts(message);
+      let newFactsCount = 0;
+      for (const k of Object.keys(extractedFromUser)) {
+        const v = extractedFromUser[k];
+        if (v == null) continue;
+        const before = memory.getFacts();
+        // use addFact so it merges safely
+        memory.addFact(k, v);
+        const after = memory.getFacts();
+        // detect if fact added (simple heuristic: key present in after but absent/changed before)
+        if (!before[k] || JSON.stringify(before[k]) !== JSON.stringify(after[k])) newFactsCount++;
+      }
+      if (newFactsCount) {
+        setToastMessage(`Saved ${newFactsCount} new fact(s) to memory.`);
+        setShowToast(true);
+      }
+
+      // 2) prepare context for backend
+      const context = { shortterm: memory.getShortTerm(), facts: memory.getFacts() };
+
+      // 3) send message with context
+      // Optionally, pass detected language as hint
+      const detectedLang = detectLanguage(message);
+      const response = await sendMessageToBot(message, "demo_user", selectedPersona, context, detectedLang);
+
+      // 4) build bot item
       const botItem = {
         sender: "bot",
         text: response.reply,
         emotion: response.emotion?.label || "neutral",
-        language: response.language || "en",
+        language: response.language || detectedLang || "en",
         persona: response.persona || selectedPersona,
       };
 
+      // 5) save bot reply to short-term memory
       memory.addTurn({
         role: "bot",
         text: botItem.text,
@@ -132,6 +169,23 @@ const Dashboard = ({
         emotion: botItem.emotion,
       });
 
+      // 6) (Optional) extract facts from bot reply if they contain user-related facts (rare)
+      const extractedFromBot = memory.extractFacts(botItem.text || "");
+      let botFactCount = 0;
+      for (const k of Object.keys(extractedFromBot)) {
+        const v = extractedFromBot[k];
+        if (v == null) continue;
+        const before = memory.getFacts();
+        memory.addFact(k, v);
+        const after = memory.getFacts();
+        if (!before[k] || JSON.stringify(before[k]) !== JSON.stringify(after[k])) botFactCount++;
+      }
+      if (botFactCount) {
+        setToastMessage(`Memory updated with ${botFactCount} facts from conversation.`);
+        setShowToast(true);
+      }
+
+      // 7) update UI chat and persist snapshot to memories sidebar
       setChatHistory((prev) => {
         const updated = [...prev, botItem];
         const memorySnapshot = {
@@ -148,32 +202,30 @@ const Dashboard = ({
         return updated;
       });
 
-      synthesizeSpeech(response.reply, response.language || "en");
+      // 8) speak
+      synthesizeSpeech(response.reply, response.language || detectedLang || "en");
     } catch (err) {
       console.error("sendMessageToBot error", err);
-      setChatHistory((prev) => [
-        ...prev,
-        { sender: "bot", text: "Sorry — something went wrong." },
-      ]);
+      setChatHistory((prev) => [...prev, { sender: "bot", text: "Sorry — something went wrong." }]);
       showEmotion("neutral");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ✳️ Clear only chat (not sidebar memories)
+  // UI helpers
+  const handleSend = () => handleUserMessage(userInput);
+  const handleVoiceInput = (text) => text && handleUserMessage(text);
+
   const handleClearChat = () => {
     setChatHistory([]);
     setToastMessage("🧹 Chat cleared successfully!");
     setShowToast(true);
   };
 
-  const handleSend = () => handleUserMessage(userInput);
-  const handleVoiceInput = (text) => text && handleUserMessage(text);
-
   return (
     <div className="dashboard">
-      {/* Topbar */}
+      {/* topbar */}
       <div className="dashboard-topbar" style={{ alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div
@@ -212,29 +264,21 @@ const Dashboard = ({
         </button>
       </div>
 
-      {/* Chat */}
+      {/* chat */}
       <div ref={chatRef} className="chat-container">
         {chatHistory.length === 0 && !isLoading && (
           <div className="empty-chat-filler">
-            <p style={{ color: "var(--muted)" }}>
-              Say hi — type or use the mic to start talking.
-            </p>
+            <p style={{ color: "var(--muted)" }}>Say hi — type or use the mic to start talking.</p>
           </div>
         )}
 
         {chatHistory.map((m, i) => (
-          <div
-            key={`${i}-${m.sender}-${m.text?.slice(0, 10)}`}
-            className={`chat-message ${
-              m.sender === "user" ? "user-msg" : "bot-msg"
-            }`}
-          >
+          <div key={`${i}-${m.sender}-${m.text?.slice(0, 10)}`} className={`chat-message ${m.sender === "user" ? "user-msg" : "bot-msg"}`}>
             <div className="bubble">
               <p>{m.text}</p>
               {m.sender === "bot" && (
                 <small className="meta">
-                  {m.language?.toUpperCase()} · {m.emotion?.toUpperCase()} ·{" "}
-                  {m.persona?.toUpperCase()}
+                  {m.language?.toUpperCase()} · {m.emotion?.toUpperCase()} · {m.persona?.toUpperCase()}
                 </small>
               )}
             </div>
@@ -244,7 +288,7 @@ const Dashboard = ({
         {isLoading && <div className="loading">Thinking...</div>}
       </div>
 
-      {/* Bottom input */}
+      {/* bottom input */}
       <div className="fixed-bottom-bar">
         <div className="input-container">
           <input
@@ -255,18 +299,12 @@ const Dashboard = ({
             onChange={(e) => setUserInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
           />
-          <button onClick={handleSend} className="send-btn">
-            Send
-          </button>
+          <button onClick={handleSend} className="send-btn">Send</button>
           <VoiceRecorder onTranscription={handleVoiceInput} />
         </div>
       </div>
 
-      <Toast
-        show={showToast}
-        message={toastMessage}
-        onClose={() => setShowToast(false)}
-      />
+      <Toast show={showToast} message={toastMessage} onClose={() => setShowToast(false)} />
     </div>
   );
 };
