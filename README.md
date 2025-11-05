@@ -255,13 +255,3 @@ It automatically detects input language and switches to an appropriate TTS voice
 ## Conclusion
 
 PolyLingo is a fully functional multilingual AI chatbot that merges NLP, speech recognition, text-to-speech, and emotion analysis into a single unified interface. It understands language context, emotional state, and personality tones to deliver intelligent, human-like responses. With real-time voice interaction and a beautifully designed UI, PolyLingo stands as an advanced demonstration of multilingual and emotion-aware AI communication. It showcases how technology can bridge linguistic and emotional gaps, creating conversations that feel truly alive.
-## Team Credits and Roles
-
-| Role                                        | Member           | Responsibilities                                                                                                                                                             |
-| ------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  **ML / Emotion Specialist**              | **[Tushar P](https://github.com/tung-programming)**     | Designed and implemented the emotion detection module, integrated Groq NLP model, managed language and sentiment mapping, and ensured multilingual voice synthesis accuracy. |
-|  **Backend Lead (STT & TTS Integration)** | **[Rakshak S](https://github.com/PRATHVI9607), Chinmai** | Developed FastAPI server, created API endpoints for NLP, speech recognition, and text-to-speech conversion, integrated model responses.                                      |
-|  **NLP & Persona Engineer**              | **[Tushar P](https://github.com/tung-programming)** | Handled language detection and persona logic, integrated GPT-style prompt structure, and developed response personalization module.                                          |
-|  **Frontend Developer (UI/UX)**           | **[Chiranthan](https://github.com/chiranthan-01), [Rahul](https://github.com/Hollow-17R)** | Built and styled the React dashboard, managed voice controls, and linked frontend components to backend APIs.                                                                |
-|  **Security & Documentation Lead**        | **[Tushar P](https://github.com/tung-programming), Chinmai** | Wrote documentation, ensured data safety for speech input, and prepared presentation material and architecture diagrams.                                                     |
-
