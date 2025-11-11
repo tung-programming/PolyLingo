@@ -15,6 +15,7 @@ import os
 from typing import Dict
 from dotenv import load_dotenv
 load_dotenv()
+
 # Local imports
 from app.nlp.language_detector import detect_language
 from app.nlp.persona_engine import apply_persona
@@ -22,17 +23,17 @@ from app.nlp.emotion_analyzer import analyze_emotion
 from app.nlp.mood_tracker import update_mood_xp
 
 # Groq/OpenAI client
-from openai import OpenAI
+import openai
+
 
 # --------------------------- MODEL SETUP ---------------------------
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
     raise EnvironmentError("⚠️  GROQ_API_KEY missing in .env file")
 
-client = OpenAI(
-    api_key=GROQ_API_KEY,
-    base_url="https://api.groq.com/openai/v1"
-)
+openai.api_key = GROQ_API_KEY
+openai.api_base = "https://api.groq.com/openai/v1"   # ✅ Groq-compatible base
+
 MODEL_NAME = "llama-3.1-8b-instant"
 
 print(f"⚡ Using Groq model: {MODEL_NAME}")
@@ -121,7 +122,7 @@ def generate_reply(user_input: str, user_id: str = "guest", persona: str = "frie
 
     # ------------------- GROQ GENERATION -------------------
     try:
-        completion = client.chat.completions.create(
+        completion = openai.ChatCompletion.create(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": "You are PolyLingo, a helpful, emotional multilingual assistant."},
@@ -130,7 +131,7 @@ def generate_reply(user_input: str, user_id: str = "guest", persona: str = "frie
             temperature=0.7,
             max_tokens=150
         )
-        reply_text = completion.choices[0].message.content.strip()
+        reply_text = completion.choices[0].message["content"].strip()
 
     except Exception as e:
         reply_text = f"Sorry, I couldn't generate a response. ({e})"
